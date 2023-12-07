@@ -19,7 +19,7 @@ class HighScores:
                 try:
                     high_scores = json.load(file)
                 except json.JSONDecodeError:
-                    print("Failed to parse JSON file")
+                    print("Error: No se pudo analizar el archivo JSON. Asegúrate de que el archivo tenga un formato JSON válido.")
 
         # Añade la nueva puntuación alta
         high_scores.append({"name": name, "score": score})
