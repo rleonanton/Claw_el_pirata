@@ -41,6 +41,10 @@ class Map:
             return pygame.transform.scale(pygame.image.load("src/claw_images/otras imagenes/level2_tile2.png"), (self.cell_size // 2, self.cell_size // 2))
         elif tile_value == 1429:
             return pygame.transform.scale(pygame.image.load("src/claw_images/otras imagenes/level2_tile1.png"), (self.cell_size // 2, self.cell_size // 2))
+        elif tile_value == 147:
+            return pygame.transform.scale(pygame.image.load("src/claw_images/otras imagenes/block_level_3_2.png"), (self.cell_size // 2, self.cell_size // 2))
+        elif tile_value == 181:
+            return pygame.transform.scale(pygame.image.load("src/claw_images/otras imagenes/block_level_3.png"), (self.cell_size // 2, self.cell_size // 2))
         else:
             return pygame.Surface((self.cell_size, self.cell_size))
 

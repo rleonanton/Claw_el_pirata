@@ -10,30 +10,45 @@ class HighScores:
                     pygame.transform.scale(pygame.image.load(path_image_top_2), (40, 40)),\
                     pygame.transform.scale(pygame.image.load(path_image_top_3), (40, 40))]
 
-
     def save_high_score(self, name, score):
-        with open(self.file_path, "a") as file:
-            json.dump({"name": name, "score": score}, file)
-            file.write("\n")
+        high_scores = []
+
+        # Carga las puntuaciones altas existentes
+        if os.path.isfile(self.file_path):
+            with open(self.file_path, "r") as file:
+                try:
+                    high_scores = json.load(file)
+                except json.JSONDecodeError:
+                    print("Failed to parse JSON file")
+
+        # Añade la nueva puntuación alta
+        high_scores.append({"name": name, "score": score})
+
+        # Guarda todas las puntuaciones altas en el archivo
+        with open(self.file_path, "w") as file:
+            json.dump(high_scores, file)
 
     def update_high_scores(self, name, score):
         high_scores = []
 
+        # Carga las puntuaciones altas existentes
         if os.path.isfile(self.file_path):
             with open(self.file_path, "r") as file:
-                for line in file:
-                    entry = json.loads(line.strip())
-                    if isinstance(entry, dict) and "score" in entry and isinstance(entry["score"], int):
-                        high_scores.append(entry)
+                try:
+                    high_scores = json.load(file)
+                except json.JSONDecodeError:
+                    print("Failed to parse JSON file")
 
+        # Añade la nueva puntuación alta
         high_scores.append({"name": name, "score": score})
+
+        # Ordena las puntuaciones altas y guarda las 5 mejores
         high_scores.sort(key=lambda x: x["score"], reverse=True)
         high_scores = high_scores[:5]
 
+        # Guarda las 5 mejores puntuaciones altas en el archivo
         with open(self.file_path, "w") as file:
-            for entry in high_scores:
-                json.dump(entry, file)
-                file.write("\n")
+            json.dump(high_scores, file)
 
     def draw_button(self, text, color_button, bg_color_hoover, text_color, rect_button):
         if rect_button.collidepoint(pygame.mouse.get_pos()):
@@ -52,7 +67,12 @@ class HighScores:
         high_scores = []
         if os.path.isfile(self.file_path):
             with open(self.file_path, "r") as file:
-                high_scores = [json.loads(line.strip()) for line in file if line.strip()]
+                try:
+                    high_scores = json.load(file)
+                except json.JSONDecodeError:
+                    print("Failed to parse JSON file")
+
+        # print(high_scores)  # Imprime las puntuaciones altas
 
         font = pygame.font.Font(None, 70)
         y = 10  # Coordenada Y inicial para mostrar los puntajes
@@ -62,5 +82,6 @@ class HighScores:
                 screen.blit(self.medals[i-1], (650, 50 + y))
 
             text_surface = font.render(f"Puntaje {i}: {entry['name']}     {entry['score']}", True, color)
-            screen.blit(text_surface, (700, 50 + y))  # Ajusta la coordenada X para dejar espacio para la medalla
+            screen.blit(text_surface, (700, 50 + y))
             y += text_surface.get_height() + 5
+

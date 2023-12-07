@@ -1,4 +1,4 @@
-import pygame, sys, random, os, sqlite3, time
+import pygame, sys, random, time
 from config import*
 from claw import Player
 from enemy import Enemy
@@ -18,6 +18,8 @@ from magic_attack import MagicAttack
 from timer import Timer
 from button import Button
 from trampas import Trap
+from sqlite import Sqlite
+from final_boss import FinalBoss
 
 class Main:
     def __init__(self, last_damage_time, current_time, damage_interval, player_name, run_menu, run, run_puntuaciones, run_game_over, score):
@@ -28,6 +30,10 @@ class Main:
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.background = pygame.image.load("src/claw_images/background27.jpg")
         self.background_width, self.background_height = self.background.get_rect().size
+        self.background_2 = pygame.transform.scale(pygame.image.load("src/claw_images/mar_final level.png"), (self.width, 150))
+        self.background_2_width, self.background_2_height = self.background_2.get_rect().size
+        self.background_bg = pygame.transform.scale(pygame.image.load("src/claw_images/pngwing.com (2).png").convert_alpha(), (self.width, self.height))
+        self.background_bg_width, self.background_bg_height = self.background_bg.get_rect().size
         self.last_damage_time = last_damage_time
         self.current_time = current_time
         self.damage_interval = damage_interval
@@ -37,9 +43,11 @@ class Main:
         self.run_puntuaciones = run_puntuaciones
         self.run_game_over = run_game_over
         self.score = score
+        self.level = None
 
     def init_sounds(self):
-        self.sounds = Sounds("src/sounds/main_sound.wav", "src/sounds/running_sound.mp3", "src/sounds/shoot_Sound.mp3", "src/sounds/sword_sound.mp3", "src/sounds/GAME OVEr.mp3", "src/sounds/magic_sound.mp3")
+        self.sounds = Sounds("src/sounds/main_sound.wav", "src/sounds/running_sound.mp3", "src/sounds/shoot_Sound.mp3", "src/sounds/sword_sound.mp3", "src/sounds/GAME OVEr.mp3", "src/sounds/magic_sound.mp3",\
+                            "src/sounds/sonido cañon final boss.mp3", "src/sounds/you win.mp3")
         self.sounds.play_main()
         self.sounds.set_volume(volumen)
 
@@ -53,6 +61,10 @@ class Main:
     def init_high_scores(self):
         self.high_scores = HighScores("src/high_score.json", self.width, self.height, "src/claw_images/backgroun_puntajes.jpg", "src/claw_images/pngwing.com (3)/top0.png",\
                                     "src/claw_images/pngwing.com (3)/top1.png", "src/claw_images/pngwing.com (3)/top2.png")
+
+    def init_sqlite(self):
+        self.sqlite = Sqlite(self.width, self.height)
+        self.sqlite.load_scores_from_json("src/high_score.json")
 
     def init_sprites(self):
 
@@ -70,10 +82,13 @@ class Main:
 
         for i in range(qty_enemy):
             x = 600 + i * 100
-            if i < 5:
-                pos_y = pos_y_enemy1
+            if level == "NIVEL 3":
+                pos_y = pos_y_enemy1  # Solo usa una posición para el NIVEL 3
             else:
-                pos_y = pos_y_enemy2
+                if i < 5:
+                    pos_y = pos_y_enemy1
+                else:
+                    pos_y = pos_y_enemy2
 
             if level == "NIVEL 1":
                 enemy = Enemy(enemy_alive, flip_enemy, random.randint(0, self.width), pos_y, scale_enemy, speed_enemy, speed_enemy, "src/claw_images/enemigos/enemigo_1", moving_left_enemy, moving_right_enemy, gravity, shots_recived,\
@@ -87,12 +102,16 @@ class Main:
                             health_enemy_2, damage_enemy_2, animation_cooldown_enemy, width_bar_enemy_1, height_bar_enemy_1, percentage_live_enemy, VIOLETA, CIAN, "LIVE BAR", 10)
                 self.enemy_group.add(enemy)
 
-            # elif level == "NIVEL 3":
-            #     # Crea un tipo diferente de enemigo para el nivel 3
-            #     enemy3 = Enemy()  # Reemplaza "..." con los argumentos necesarios para crear un enemigo de otro tipo
+            elif level == "NIVEL 3":
+                self.final_boss = FinalBoss(pos_x_final_boss, pos_y_final_boss, self.width, self.height, "src/claw_images/Imagen2.png", self.screen)
 
-            # else:
-            #     raise ValueError(f"Nivel desconocido: {level}")
+                enemy = Enemy(enemy_alive_2, flip_enemy_2, random.randint(600, self.width), pos_y, scale_enemy_2, speed_enemy_2, speed_enemy_2, "src/claw_images/enemigos/enemigo_2",\
+                            moving_left_enemy_2, moving_right_enemy_2, gravity, shots_recived_2, qty_idle_images_enemy_2, qty_moving_images_enemy_2, qty_attack_images_enemy_2, qty_death_images_enemy_2,\
+                            health_enemy_2, damage_enemy_2, animation_cooldown_enemy, width_bar_enemy_1, height_bar_enemy_1, percentage_live_enemy, VIOLETA, CIAN, "LIVE BAR", 10)
+                self.enemy_group.add(enemy)
+
+            else:
+                raise ValueError(f"Nivel desconocido: {level}")
             
     def init_map(self, level):
 
@@ -103,7 +122,7 @@ class Main:
                     value = self.map_level.get_value(row, column)
                     if value in [9, 18]:
                         self.map_level.create_platform(column * self.map_level.cell_size // 2 + self.map_level.position_x, row * self.map_level.cell_size // 2 + 289, value)
-        
+            self.level = level
         elif level == "NIVEL 2":
             self.map_level = Map("src/niveles/nivel2.csv", tile_size, position_x_tile, speed_map)
             for row in range(self.map_level.height):
@@ -111,28 +130,41 @@ class Main:
                     value = self.map_level.get_value(row, column)
                     if value in [1235, 1429]:
                         self.map_level.create_platform(column * self.map_level.cell_size // 2 + self.map_level.position_x, row * self.map_level.cell_size // 2 + 289, value)
+            self.level = level
         
         elif level == "NIVEL 3":
             self.map_level = Map("src/niveles/nivel3.csv", tile_size, position_x_tile, speed_map)
             for row in range(self.map_level.height):
                 for column in range(self.map_level.width):
                     value = self.map_level.get_value(row, column)
-                    if value in [9, 18]:
-                        self.map_level.create_platform(column * self.map_level.cell_size // 2 + self.map_level.position_x, row * self.map_level.cell_size // 2 + 289, value)
-            self.map_level = Map("src/niveles/nivel3.csv", tile_size, position_x_tile, speed_map)
+                    if value in [147, 181]:
+                        self.map_level.create_platform(column * self.map_level.cell_size // 2 + self.map_level.position_x, row * self.map_level.cell_size // 2 - 100, value)
+            self.level = level
         else:
             raise ValueError(f"Nivel desconocido: {level}")
 
     def init_coins(self):
         self.all_coins = pygame.sprite.Group()
-        for _ in range(qty_coins):
-            coin_type = random.choice(["coin5", "coin10"])
-            if coin_type == "coin5":
-                pos_y = pos_y_coins
-            else:
-                pos_y = pos_y_coins - 450
-            self.coin = Coin(random.randint(0, self.width), pos_y, coin_type, coin_width, coin_height)
-            self.all_coins.add(self.coin)
+        if self.level == "NIVEL 1" or self.level == "NIVEL 2":
+            for _ in range(qty_coins):
+                coin_type = random.choice(["coin5", "coin10"])
+                if coin_type == "coin5":
+                    pos_y = pos_y_coins
+                else:
+                    pos_y = pos_y_coins - 450
+                self.coin = Coin(random.randint(0, self.width), pos_y, coin_type, coin_width, coin_height)
+                self.all_coins.add(self.coin)
+        
+        else:
+            for _ in range(qty_coins):
+                coin_type = random.choice(["coin5", "coin10"])
+                if coin_type == "coin5":
+                    pos_y = pos_y_coins_level_3
+                else:
+                    pos_y = pos_y_coins_level_3
+                self.coin = Coin(random.randint(700, self.width), pos_y, coin_type, coin_width, coin_height)
+                self.all_coins.add(self.coin)
+                print(self.level)
 
     def init_status_bars(self):
         self.status_bar = StatusBar(pos_x_live_bar, pos_y_live_bar, width_bar, height_bar, VIOLETA, CIAN, percentage_live, "LIVE BAR", 38)
@@ -140,35 +172,72 @@ class Main:
         
     def init_especial_items(self):
         self.special_items = pygame.sprite.Group()
-        x_life = pos_x_special_item
-        x_magic = pos_x_special_item + 200 
-        for _ in range(3):  # Crea 3 elementos de cada tipo
-            # Vida
-            x_life += 100
-            special_item = SpecialItem(self.screen, x_life, pos_y_especial_item, "src/claw_images/vida.png", "life", scale_special_items)
-            self.special_items.add(special_item)
-            # Magia
-            x_magic += 250
-            special_item = SpecialItem(self.screen, x_magic, pos_y_especial_item, "src/claw_images/magia.png", "magic", scale_special_items)
-            self.special_items.add(special_item)
+        if self.level == "NIVEL 1" or self.level == "NIVEL 2":
+            x_life = pos_x_special_item
+            x_magic = pos_x_special_item + 200 
+            for _ in range(3):  # Crea 3 elementos de cada tipo
+                # Vida
+                x_life += 100
+                special_item = SpecialItem(self.screen, x_life, pos_y_especial_item, "src/claw_images/vida.png", "life", scale_special_items)
+                self.special_items.add(special_item)
+                # Magia
+                x_magic += 250
+                special_item = SpecialItem(self.screen, x_magic, pos_y_especial_item, "src/claw_images/magia.png", "magic", scale_special_items)
+                self.special_items.add(special_item)
+        else:
+            x_life = pos_x_special_item_level_3
+            x_magic = pos_x_special_item_level_3 + 200 
+            for _ in range(3):  # Crea 3 elementos de cada tipo
+                # Vida
+                x_life += 100
+                special_item = SpecialItem(self.screen, x_life, pos_y_especial_item_level_3, "src/claw_images/vida.png", "life", scale_special_items)
+                self.special_items.add(special_item)
+                # Magia
+                x_magic += 250
+                special_item = SpecialItem(self.screen, x_magic, pos_y_especial_item_level_3, "src/claw_images/magia.png", "magic", scale_special_items)
+                self.special_items.add(special_item)
 
     def init_traps(self):
         self.traps = pygame.sprite.Group()
+        if self.level == "NIVEL 1":
+            trap1 = Trap("src/claw_images/spikes.png", 570, 896)
+            self.traps.add(trap1)
 
-        trap1 = Trap("src/claw_images/spikes.png", 570, 896)
-        self.traps.add(trap1)
+            trap2 = Trap("src/claw_images/spikes.png", 1170, 910)
+            self.traps.add(trap2)
 
-        trap2 = Trap("src/claw_images/spikes.png", 1170, 910)
-        self.traps.add(trap2)
+            trap3 = Trap("src/claw_images/spikes.png", 1500, 910)
+            self.traps.add(trap3)
 
-        trap3 = Trap("src/claw_images/spikes.png", 1500, 910)
-        self.traps.add(trap3)
+            trap4 = Trap("src/claw_images/spikes.png", 400, 387)
+            self.traps.add(trap4)
 
-        trap1 = Trap("src/claw_images/spikes.png", 400, 387)
-        self.traps.add(trap1)
+            trap5 = Trap("src/claw_images/spikes.png", 1170, 400)
+            self.traps.add(trap5)
+        
+        elif self.level == "NIVEL 2":
+            trap1 = Trap("src/claw_images/spikes.png", 570, 570)
+            self.traps.add(trap1)
 
-        trap2 = Trap("src/claw_images/spikes.png", 1170, 400)
-        self.traps.add(trap2)
+            trap2 = Trap("src/claw_images/spikes.png", 1170, 570)
+            self.traps.add(trap2)
+
+            trap3 = Trap("src/claw_images/spikes.png", 1500, 673)
+            self.traps.add(trap3)
+
+            trap4 = Trap("src/claw_images/spikes.png", 670, 867)
+            self.traps.add(trap4)
+
+        else:
+            print("VINO a parar aqui")
+            trap1 = Trap("src/claw_images/spikes.png", 435, 690)
+            self.traps.add(trap1)
+
+            trap2 = Trap("src/claw_images/spikes.png", 1170, 455)
+            self.traps.add(trap2)
+
+            trap3 = Trap("src/claw_images/spikes.png", 1700, 455)
+            self.traps.add(trap3)
 
     def init_menu(self):
         self.main_menu = MainMenu(self.screen, self.width, self.height,  "src/claw_images/background_menu.jpg", "src/claw_images/otras imagenes/claw_bg.png", "src/claw_images/menu_image.png", menu_option)
@@ -176,33 +245,40 @@ class Main:
     def init_game_over(self):
         self.game_over = GameOver(self.screen, self.width, self.height, "src/claw_images/game over background.png", "src/claw_images/game-over-yellow_60200757f069c.png", self.score)
 
+    def init_win(self):
+        self.win = GameOver(self.screen, self.width, self.height, "src/claw_images/game over background.png", "src\claw_images\you win.png", self.score)
+
     def wait_user(self):
 
         # Define los botones
         button_return = Button(self.width // 2 - width_button // 2, 100, width_button, height_button, GRIS, NEGRO, "RETURN TO GAME")
-        button_return_menu = Button(self.width // 2 - width_button // 2, 200, width_button, height_button, GRIS, NEGRO, "RETURN TO MENU")  # Ajusta las coordenadas y el tamaño según tus necesidades
+        button_return_menu = Button(self.width // 2 - width_button // 2, 200, width_button, height_button, GRIS, NEGRO, "RETURN TO MENU")
         button_config = Button(self.width // 2 - width_button // 2, 300, width_button, height_button, GRIS, NEGRO, "CONFIG")
         button_exit = Button(self.width // 2 - width_button // 2, 400, width_button, height_button, GRIS, NEGRO, "EXIT GAME")
 
-        while True:
+        run_wait_user = True
+        while run_wait_user:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.exit_game()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
                         self.exit_game()
+
                 # Verifica si se hizo clic en alguno de los botones
                 if button_config.is_clicked(event):
                     self.show_config_screen()
-                    print("Botón de configuración presionado")  # Reemplaza esto con la acción que desees
+                    print("Botón de configuración presionado")  
                 elif button_exit.is_clicked(event):
                     self.exit_game()
                 elif button_return_menu.is_clicked(event):
-                    print("h")
+                    self.run_main()
+                    print("Boton de regresar al menú presionado")
+                    run_wait_user = False
                 elif button_return.is_clicked(event):
-                    print("Botón de regresar presionado")  # Reemplaza esto con la acción que desees
+                    print("Botón de regresar presionado") 
                     self.timer.unpause()
-                    return
+                    run_wait_user = False
 
             # Dibuja los botones
             button_config.draw(self.screen)
@@ -261,12 +337,12 @@ class Main:
         self.init_high_scores()
         self.init_sprites()
         self.init_player()
-        self.init_coins()
         self.init_status_bars()
         self.init_menu()
         self.init_game_over()
+        self.init_win()
         self.init_timer()
-        self.init_traps()
+        # self.init_sqlite()
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -451,11 +527,24 @@ class Main:
     def run_game(self):
         
         # Dibujar el background
-        self.screen.blit(self.background, (0,-420))
+        if self.level == "NIVEL 1" or self.level == "NIVEL 2":
+            self.screen.blit(self.background, (0,-420))
+        elif self.level == "NIVEL 3":
+            self.screen.blit(self.background_bg, (0,0))
+            self.screen.blit(self.background_2, (0,950))
+            # self.sounds.canon_final_boss_sound.play()
+            self.final_boss.update(self.sounds)
+            self.final_boss.bullet_group.update()
+
+            # Dibuja el jefe final y todas las balas
+            self.final_boss.draw(self.screen)
+            self.final_boss.bullet_group.draw(self.screen)
+
         self.status_bar.draw_bar(self.screen)
         self.magic_bar.draw_bar(self.screen)
         self.special_items.draw(self.screen)
-        
+        # dibujo y actualizo las trampas
+        self.traps.draw(self.screen)
         #dibujo las plataformas
         for platform in self.map_level.platforms_group:
             self.screen.blit(platform.image, (platform.rect.x + self.map_level.position_x, platform.rect.y))
@@ -464,8 +553,6 @@ class Main:
             magic_attack.update()
             magic_attack.draw(self.screen)
 
-        # dibujo y actualizo las trampas
-        self.traps.draw(self.screen)
 
         # dibujo y actualizo al personaje principal y el enemigo_1
         self.claw.update_animation()
@@ -479,10 +566,58 @@ class Main:
         self.all_coins.update()  # Actualizar la animación de las monedas
         self.all_coins.draw(self.screen)  # Dibujar las monedas en la pantalla
 
+
+        #verifico la colision de claw con las balas del final boss
+        collisions = pygame.sprite.groupcollide(self.final_boss.bullet_group, self.claws, True, False)
+        for bullet in collisions:
+            for claw in collisions[bullet]:
+                self.status_bar.percentage -= 100
+                self.status_bar.update_percentage(self.status_bar.percentage)
+                if self.status_bar.percentage == 0:
+                    self.high_scores.update_high_scores(self.player_name, score[0])
+                    self.sounds.play_game_over()
+                    restart_option = self.game_over.run(self.player_name)
+
+                    if restart_option == "REINICIAR":
+                        self.restart()
+                        self.timer.reset()
+
+        
         # dibujo y actualizo las bullets
         self.bullet_group.update()
         self.bullet_group.draw(self.screen)
 
+        # Verificación de colisiones con el jefe final
+        collisions_bullets = pygame.sprite.spritecollide(self.final_boss, self.bullet_group, True)
+        for bullet in collisions_bullets:
+            self.final_boss.health -= 5  # Las balas reducen la salud del jefe final en un 5%
+            self.final_boss.health_bar.update_percentage(self.final_boss.health)
+            if self.final_boss.health <= 0:
+                score[0] += 1000
+                self.high_scores.update_high_scores(self.player_name, score[0])
+                self.sounds.play_win()
+                restart_option = self.win.run(self.player_name)
+
+                if restart_option == "REINICIAR":
+                    self.restart()
+                    self.timer.reset()
+                    score[0] = 0
+
+        collisions_magic_attacks = pygame.sprite.spritecollide(self.final_boss, self.magic_attack_group, True)
+        for magic_attack in collisions_magic_attacks:
+            self.final_boss.health -= 10  # Los ataques mágicos reducen la salud del jefe final en un 10%
+            self.final_boss.health_bar.update_percentage(self.final_boss.health)
+            if self.final_boss.health <= 0:
+                score[0] += 1000
+                self.high_scores.update_high_scores(self.player_name, score[0])
+                self.sounds.play_win()
+                restart_option = self.win.run(self.player_name)
+
+                if restart_option == "REINICIAR":
+                    self.restart()
+                    self.timer.reset()
+                    score[0] = 0
+        
         # verificacion de colisiones con las trampas
         collisions_traps = pygame.sprite.groupcollide(self.claws, self.traps, True, False)
 
@@ -508,6 +643,7 @@ class Main:
                 restart_option = self.game_over.run(self.player_name)
                 if restart_option == "REINICIAR":
                     self.restart()
+                    score[0] = 0
                 print("El jugador chocó con una trampa")
 
         # verificacion de bullets y enemigos
@@ -531,6 +667,8 @@ class Main:
 
                         if restart_option == "REINICIAR":
                             self.restart()
+                            self.timer.reset()
+                            score[0] = 0
 
             for bullet in collisions:
                 for enemy in collisions[bullet]:
@@ -569,7 +707,7 @@ class Main:
                 for enemy in collisions[magic_attack]:
                     enemy.health_bar.percentage -= 200  # Reduce la salud del enemigo
                     enemy.percentage_live -= 200  # Reduce la salud del enemigo
-                    if enemy.health_bar.percentaje <= 0:  # Si la salud del enemigo es 0 o menos, lo elimina
+                    if enemy.health_bar.percentage <= 0:  # Si la salud del enemigo es 0 o menos, lo elimina
                         print("¡Enemigo eliminado!")
                         score[0] += 25
                         self.enemy_group.remove(enemy)
@@ -646,15 +784,71 @@ class Main:
         while self.run_menu:
             menu_option = self.main_menu.run()
             self.timer.pause()
+
             if menu_option == "INICIAR JUEGO":
+
+                self.map_level = "NIVEL 1" # Guarda el nivel seleccionado en self.map_level
+                self.init_map(self.map_level)
+                self.init_enemies("NIVEL 1")  # Inicializa los enemigos para el nivel seleccionado
                 self.main_menu.menu_option = None
-                self.run = True
-                
-                while self.run:  
+                self.run_level_1 = True
+                username_screen = UsernameScreen(self.screen, self.width, self.height)
+                self.player_name = username_screen.run()
+                self.init_especial_items()
+                self.init_traps()
+                self.init_coins()
+                self.timer.reset()
+
+                while self.run_level_1:  
                     self.handle_events()
                     self.run_game()
+                    if len(self.enemy_group) == 0:
+                        self.map_level = "NIVEL 2"
+                        self.init_map(self.map_level)
+                        self.init_enemies("NIVEL 2")
+                        self.init_coins()
+                        self.init_especial_items()
+                        self.init_traps()
+                        self.timer.reset()
+                        self.run_level_1 = False
+                        self.run_level_2 = True
+                        while self.run_level_2:
+                            self.handle_events()
+                            self.run_game()
+                            if len(self.enemy_group) == 0:
+                                self.map_level = "NIVEL 3"
+                                self.init_map(self.map_level)
+                                self.init_enemies("NIVEL 3")
+                                self.init_coins()
+                                self.init_especial_items()
+                                self.init_traps()
+                                self.timer.reset()
+                                self.run_level_2 = False
+                                self.run_level_3 = True
+                                while self.run_level_3:
+                                    self.handle_events()
+                                    self.run_game()
+                                    if len(self.enemy_group) == 0:
+                                        self.high_scores.update_high_scores(self.player_name, score[0])
+                                        self.sounds.play_game_over()
+                                        self.restart()
+                                        self.timer.reset()
+                                        score[0] = 0
+                                        self.run = False
+                                        self.run_menu = True
+                                        self.run_main()
+                                        self.timer.reset()
+                                        self.high_scores.update_high_scores(self.player_name, score[0])
+                                        break
+                                break
+                        break
+
+
 
             if menu_option == "VER PUNTUACIONES":
+                # self.main_menu.menu_option = None
+                # top_scores = self.sqlite.get_top_scores()
+                # self.sqlite.game_loop(top_scores)
 
                 self.main_menu.menu_option = None
                 self.run_puntuaciones = True
@@ -707,6 +901,8 @@ class Main:
                     username_screen = UsernameScreen(self.screen, self.width, self.height)
                     self.player_name = username_screen.run()
                     self.init_especial_items()
+                    self.init_traps()
+                    self.init_coins()
                     self.timer.reset()
                     
                     while self.run:  
@@ -733,8 +929,6 @@ if __name__ == "__main__":
     game.run_main()
 
 
-# sqlite
-# final level
-# escalabilidad de niveles
-# exc|epciones
+# modularizar run_game
+
 

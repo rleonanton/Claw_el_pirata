@@ -5,7 +5,9 @@ screen_scroll = 0
 background_scroll = 0
 player_name = ""
 pos_x_special_item = 300
+pos_x_special_item_level_3 = 800
 pos_y_especial_item = 573
+pos_y_especial_item_level_3 = 455
 scale_special_items = (32, 32)
 volumen = 0.5
 
@@ -100,7 +102,7 @@ qty_attack_images_enemy_2 = 12
 qty_death_images_enemy_2 = 23
 health_enemy_2 = 200
 is_hurt_enemy_2 = False
-speed_enemy_2 = 3
+speed_enemy_2 = 2
 shots_recived_2 = 0
 flee_health_2 = 20
 attack_range_2 = 100
@@ -109,6 +111,10 @@ pos_y_enemy2_1 = 400
 pos_y_enemy2_2 = 800
 damage_enemy_2 = 20
 
+# variables de final boss
+
+pos_x_final_boss = 1000
+pos_y_final_boss = 550
 
 #botones menu de inicio
 
@@ -136,6 +142,7 @@ qty_coins = 10
 coin_width = 16
 coin_height = 16
 pos_y_coins = 720
+pos_y_coins_level_3 = 400
 
 #-----coordenadas del background
 
