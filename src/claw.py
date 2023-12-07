@@ -88,10 +88,6 @@ class Player(pygame.sprite.Sprite):
             self.rect.left = 0
         if self.rect.right > width:
             self.rect.right = width
-
-
-        # actualizo la posicion del rectangulo
-        # self.rect.y += dir_y
             
         # Verifica las colisiones en el eje y
         for platform in platforms:
@@ -108,15 +104,12 @@ class Player(pygame.sprite.Sprite):
         # Actualiza la posición del rectángulo
         self.rect.y += dir_y
 
-                        
-
     def update_action(self, new_action):
         #verifico si la accion a producirse es diferente a la anterior
         if new_action != self.action:
             self.action = new_action
             self.frame_index = 0
             self.update_time = pygame.time.get_ticks()
-
 
     def update_animation(self):
 
@@ -136,19 +129,3 @@ class Player(pygame.sprite.Sprite):
 
     def draw(self, screen):
         screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
-
-    # def draw(self, screen):
-    #     print(self.image.get_width(), self.image.get_height())  # Imprime las dimensiones de la imagen
-    #     screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
-
-    # def set_scale(self, scale):
-
-    #     self.scale = scale
-
-    #     for i, animation in enumerate(self.original_animation_list):
-    #         temp_list = []
-    #         for image in animation:
-    #             # escala la imagen original, no la imagen ya escalada
-    #             scaled_image = pygame.transform.scale(image, (int(image.get_width() * self.scale), int(image.get_height() * self.scale)))
-    #             temp_list.append(scaled_image)
-    #         self.animation_list[i] = temp_list

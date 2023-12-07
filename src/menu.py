@@ -30,15 +30,16 @@ class MainMenu:
         while self.menu_option is None:
             self.screen.blit(self.background, (0, 0))
             
-
             button_start_rect = pygame.Rect(self.width // 2 - width_button // 2, self.height // 2 - 2 * height_button, width_button, height_button)
             button_scores_rect = pygame.Rect(self.width // 2 - width_button // 2, self.height // 2 - height_button // 2, width_button, height_button)
             button_niveles_rect = pygame.Rect(self.width // 2 - width_button // 2, self.height // 2 + height_button, width_button, height_button)
-            button_exit_rect = pygame.Rect(self.width // 2 - width_button // 2, self.height // 2 + 2.5 * height_button, width_button, height_button)
+            button_configuracion_rect = pygame.Rect(self.width // 2 - width_button // 2, self.height // 2 + 2.5 * height_button, width_button, height_button)
+            button_exit_rect = pygame.Rect(self.width // 2 - width_button // 2, self.height // 2 + 5 * height_button, width_button, height_button)
 
-            # self.draw_button("INICIAR JUEGO", GRIS, NEGRO, BUTTON_COLOR, button_start_rect)
+            self.draw_button("INICIAR JUEGO", GRIS, NEGRO, BUTTON_COLOR, button_start_rect)
             self.draw_button("VER PUNTUACIONES", GRIS, NEGRO, BUTTON_COLOR, button_scores_rect)
             self.draw_button("NIVELES", GRIS, NEGRO, BUTTON_COLOR, button_niveles_rect)
+            self.draw_button("CONFIGURACIÓN", GRIS, NEGRO, BUTTON_COLOR, button_configuracion_rect)
             self.draw_button("SALIR", GRIS, NEGRO, BUTTON_COLOR, button_exit_rect)
 
             for event in pygame.event.get():
@@ -57,6 +58,8 @@ class MainMenu:
                         self.menu_option = "VER PUNTUACIONES"
                     elif button_niveles_rect.collidepoint(x, y):
                         self.menu_option = "NIVELES"
+                    elif button_configuracion_rect.collidepoint(x, y):
+                        self.menu_option = "CONFIGURACIÓN"
                     elif button_exit_rect.collidepoint(x, y):
                         pygame.quit()
                         sys.exit()

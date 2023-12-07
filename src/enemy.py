@@ -1,8 +1,10 @@
 import pygame, random
+from status_bar import StatusBar    
 
 class Enemy(pygame.sprite.Sprite):
     def __init__(self, alive, flip, x, y, scale, speed_x, speed_y, folder_path, moving_left_enemy, moving_right_enemy, gravity, shots_recived, qty_idle_images,\
-                qty_moving_images, qty_attack_images, qty_death_images ,health, damage, animations_cooldown):
+                qty_moving_images, qty_attack_images, qty_death_images ,health, damage, animations_cooldown, width_bar, height_bar, percentage_live, color_fill,\
+                border_color, text, font_size):
         pygame.sprite.Sprite.__init__(self)
         self.alive = alive
         self.speed_x = speed_x
@@ -30,6 +32,7 @@ class Enemy(pygame.sprite.Sprite):
         self.idling = False
         self.idling_counter = 0
         self.vision = pygame.Rect(0, 0, 50, 20)
+        self.percentage_live = percentage_live
 
         animations_info = [[self.qty_idle_image, "idle"], [self.qty_moving_images, "moving"], [self.qty_attack_images, "attack"], [self.qty_death_image, "death"]]
 
@@ -45,6 +48,7 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
         self.mask = pygame.mask.from_surface(self.image)
+        self.health_bar = StatusBar(self.rect.x, self.rect.y, width_bar, height_bar, border_color, color_fill, self.percentage_live, text, font_size)
 
     def move(self, moving_left_enemy, moving_right_enemy, platforms, width, map_level):
         #reset movement variables
@@ -79,19 +83,12 @@ class Enemy(pygame.sprite.Sprite):
                 self.in_the_air = False
                 self.speed_y = 0
 
-        #update rectangle position
         self.rect.x += dir_x_enemy
         self.rect.y += dir_y_enemy
 
         #verifico los bordes para que no salgan de pantalla los enemigos
         if self.rect.left + dir_x_enemy < 0 or self.rect.right + dir_x_enemy > width:
             self.direction *= -1
-
-        for platform in platforms:
-            if platform.rect.colliderect(self.rect.x, self.rect.y + 1, self.rect.width, self.rect.height) and self.speed_y >= 0:
-                self.rect.bottom = platform.rect.top
-                self.in_the_air = False
-                self.speed_y = 0
 
     def update_action(self, new_action):
         #verifico si la accion a producirse es diferente a la anterior
@@ -149,6 +146,11 @@ class Enemy(pygame.sprite.Sprite):
                     self.idling_counter -= 1
                     if self.idling_counter <= 0:
                         self.idling = False
+
+        # Actualiza la posición de la barra de vida para que coincida con la del enemigo
+        self.health_bar.x = self.rect.x - 10
+        self.health_bar.y = self.rect.y - 10
                         
     def draw(self, screen):
         screen.blit(pygame.transform.flip(self.image, not self.flip, False), self.rect)
+        self.health_bar.draw_bar(screen)

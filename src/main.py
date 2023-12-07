@@ -1,4 +1,4 @@
-import pygame, sys, random, os
+import pygame, sys, random, os, sqlite3, time
 from config import*
 from claw import Player
 from enemy import Enemy
@@ -16,6 +16,8 @@ from level_menu import LevelMenu
 from especial_items import SpecialItem
 from magic_attack import MagicAttack
 from timer import Timer
+from button import Button
+from trampas import Trap
 
 class Main:
     def __init__(self, last_damage_time, current_time, damage_interval, player_name, run_menu, run, run_puntuaciones, run_game_over, score):
@@ -39,7 +41,7 @@ class Main:
     def init_sounds(self):
         self.sounds = Sounds("src/sounds/main_sound.wav", "src/sounds/running_sound.mp3", "src/sounds/shoot_Sound.mp3", "src/sounds/sword_sound.mp3", "src/sounds/GAME OVEr.mp3", "src/sounds/magic_sound.mp3")
         self.sounds.play_main()
-        self.sounds.set_volume(0.3)
+        self.sounds.set_volume(volumen)
 
     def init_text(self):
         self.text_renderer = TextRenderer(self.screen)
@@ -49,7 +51,8 @@ class Main:
         self.timer = Timer(1700, 100, 36, BLANCO, None)
 
     def init_high_scores(self):
-        self.high_scores = HighScores("src/high_score.json", self.width, self.height)
+        self.high_scores = HighScores("src/high_score.json", self.width, self.height, "src/claw_images/backgroun_puntajes.jpg", "src/claw_images/pngwing.com (3)/top0.png",\
+                                    "src/claw_images/pngwing.com (3)/top1.png", "src/claw_images/pngwing.com (3)/top2.png")
 
     def init_sprites(self):
 
@@ -64,6 +67,7 @@ class Main:
 
     def init_enemies(self, level):
         self.enemy_group = pygame.sprite.Group()
+
         for i in range(qty_enemy):
             x = 600 + i * 100
             if i < 5:
@@ -73,13 +77,14 @@ class Main:
 
             if level == "NIVEL 1":
                 enemy = Enemy(enemy_alive, flip_enemy, random.randint(0, self.width), pos_y, scale_enemy, speed_enemy, speed_enemy, "src/claw_images/enemigos/enemigo_1", moving_left_enemy, moving_right_enemy, gravity, shots_recived,\
-                            qty_idle_images_enemy, qty_moving_images_enemy, qty_attack_images_enemy, 0, health_enemy, damage_enemy_1, animation_cooldown_enemy)
+                            qty_idle_images_enemy, qty_moving_images_enemy, qty_attack_images_enemy, 0, health_enemy, damage_enemy_1, animation_cooldown_enemy, width_bar_enemy_1,\
+                                height_bar_enemy_1, percentage_live_enemy, VIOLETA, CIAN, "LIVE BAR", 10)
                 self.enemy_group.add(enemy)
 
             elif level == "NIVEL 2":
                 enemy = Enemy(enemy_alive_2, flip_enemy_2, random.randint(0, self.width), pos_y, scale_enemy_2, speed_enemy_2, speed_enemy_2, "src/claw_images/enemigos/enemigo_2",\
                             moving_left_enemy_2, moving_right_enemy_2, gravity, shots_recived_2, qty_idle_images_enemy_2, qty_moving_images_enemy_2, qty_attack_images_enemy_2, qty_death_images_enemy_2,\
-                            health_enemy_2, damage_enemy_2, animation_cooldown_enemy)
+                            health_enemy_2, damage_enemy_2, animation_cooldown_enemy, width_bar_enemy_1, height_bar_enemy_1, percentage_live_enemy, VIOLETA, CIAN, "LIVE BAR", 10)
                 self.enemy_group.add(enemy)
 
             # elif level == "NIVEL 3":
@@ -130,9 +135,9 @@ class Main:
             self.all_coins.add(self.coin)
 
     def init_status_bars(self):
-        self.status_bar = StatusBar(pos_x_live_bar, pos_y_live_bar, width_bar, height_bar, VIOLETA, CIAN, percentage_live, "LIVE BAR")
-        self.magic_bar = StatusBar(pos_x_magic_bar, pos_y_magic_bar, width_bar, height_bar, CIAN, VIOLETA, percentage_magic, "MAGIC BAR")
-
+        self.status_bar = StatusBar(pos_x_live_bar, pos_y_live_bar, width_bar, height_bar, VIOLETA, CIAN, percentage_live, "LIVE BAR", 38)
+        self.magic_bar = StatusBar(pos_x_magic_bar, pos_y_magic_bar, width_bar, height_bar, CIAN, VIOLETA, percentage_magic, "MAGIC BAR", 38)
+        
     def init_especial_items(self):
         self.special_items = pygame.sprite.Group()
         x_life = pos_x_special_item
@@ -147,11 +152,107 @@ class Main:
             special_item = SpecialItem(self.screen, x_magic, pos_y_especial_item, "src/claw_images/magia.png", "magic", scale_special_items)
             self.special_items.add(special_item)
 
+    def init_traps(self):
+        self.traps = pygame.sprite.Group()
+
+        trap1 = Trap("src/claw_images/spikes.png", 570, 896)
+        self.traps.add(trap1)
+
+        trap2 = Trap("src/claw_images/spikes.png", 1170, 910)
+        self.traps.add(trap2)
+
+        trap3 = Trap("src/claw_images/spikes.png", 1500, 910)
+        self.traps.add(trap3)
+
+        trap1 = Trap("src/claw_images/spikes.png", 400, 387)
+        self.traps.add(trap1)
+
+        trap2 = Trap("src/claw_images/spikes.png", 1170, 400)
+        self.traps.add(trap2)
+
     def init_menu(self):
         self.main_menu = MainMenu(self.screen, self.width, self.height,  "src/claw_images/background_menu.jpg", "src/claw_images/otras imagenes/claw_bg.png", "src/claw_images/menu_image.png", menu_option)
 
     def init_game_over(self):
         self.game_over = GameOver(self.screen, self.width, self.height, "src/claw_images/game over background.png", "src/claw_images/game-over-yellow_60200757f069c.png", self.score)
+
+    def wait_user(self):
+
+        # Define los botones
+        button_return = Button(self.width // 2 - width_button // 2, 100, width_button, height_button, GRIS, NEGRO, "RETURN TO GAME")
+        button_return_menu = Button(self.width // 2 - width_button // 2, 200, width_button, height_button, GRIS, NEGRO, "RETURN TO MENU")  # Ajusta las coordenadas y el tamaño según tus necesidades
+        button_config = Button(self.width // 2 - width_button // 2, 300, width_button, height_button, GRIS, NEGRO, "CONFIG")
+        button_exit = Button(self.width // 2 - width_button // 2, 400, width_button, height_button, GRIS, NEGRO, "EXIT GAME")
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.exit_game()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        self.exit_game()
+                # Verifica si se hizo clic en alguno de los botones
+                if button_config.is_clicked(event):
+                    self.show_config_screen()
+                    print("Botón de configuración presionado")  # Reemplaza esto con la acción que desees
+                elif button_exit.is_clicked(event):
+                    self.exit_game()
+                elif button_return_menu.is_clicked(event):
+                    print("h")
+                elif button_return.is_clicked(event):
+                    print("Botón de regresar presionado")  # Reemplaza esto con la acción que desees
+                    self.timer.unpause()
+                    return
+
+            # Dibuja los botones
+            button_config.draw(self.screen)
+            button_exit.draw(self.screen)
+            button_return.draw(self.screen)
+            button_return_menu.draw(self.screen)
+
+            pygame.display.flip()  # Actualiza la pantalla
+    
+    def show_config_screen(self):
+
+        button_sound_down = Button(self.width // 2 - width_button // 2, self.height // 2 - 2 * height_button, width_button, height_button, GRIS, NEGRO, "SONIDO DOWN")  # Ajusta las coordenadas y el tamaño según tus necesidades
+        button_sound_on = Button(self.width // 2 - width_button // 2, self.height // 2 - height_button // 2, width_button, height_button, GRIS, NEGRO, "SONIDO ON")
+        button_sound_off = Button(self.width // 2 - width_button // 2, self.height // 2 + height_button, width_button, height_button, GRIS, NEGRO, "SONIDO OFF")
+        button_back_to_menu = Button(self.width // 2 - width_button // 2, self.height // 2 + 2.5 * height_button, width_button, height_button, GRIS, NEGRO, "REGRESAR")
+        button_exit = Button(self.width // 2 - width_button // 2, self.height // 2 + 5 * height_button, width_button, height_button, GRIS, NEGRO, "SALIR DEL JUEGO")
+
+            # button_start_rect = pygame.Rect()
+            # button_scores_rect = pygame.Rect(self.width // 2 - width_button // 2, self.height // 2 - height_button // 2, width_button, height_button)
+            # button_niveles_rect = pygame.Rect(self.width // 2 - width_button // 2, self.height // 2 + height_button, width_button, height_button)
+            # button_configuracion_rect = pygame.Rect(self.width // 2 - width_button // 2, self.height // 2 + 2.5 * height_button, width_button, height_button)
+            # button_exit_rect = pygame.Rect(self.width // 2 - width_button // 2, self.height // 2 + 5 * height_button, width_button, height_button)
+
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    self.exit_game()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        return
+                elif button_sound_down.is_clicked(event):
+                    self.sounds.set_volume(volumen - 0.3)
+                elif button_sound_on.is_clicked(event):
+                    self.sounds.set_volume(1.0)  # Asume que 'self.sounds' es una instancia de tu clase 'Sounds'
+                elif button_sound_off.is_clicked(event):
+                    self.sounds.set_volume(0.0)
+                elif button_exit.is_clicked(event):
+                    self.exit_game()
+                elif button_back_to_menu.is_clicked(event):
+                    return
+
+            
+            button_sound_on.draw(self.screen)
+            button_sound_off.draw(self.screen)
+            button_sound_down.draw(self.screen)
+            button_back_to_menu.draw(self.screen)
+            button_exit.draw(self.screen)
+
+            pygame.display.flip()
 
     def main(self):
         self.clock = pygame.time.Clock()
@@ -165,6 +266,7 @@ class Main:
         self.init_menu()
         self.init_game_over()
         self.init_timer()
+        self.init_traps()
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -200,7 +302,8 @@ class Main:
             self.claw.speed_y = jump_velocity
 
         if event.key == pygame.K_p and self.claw.alive:
-            self.text_pausa.show_text("Pausa", 100, (self.width // 2, self.height // 2), MAGENTA)
+            self.text_pausa.show_text("Pausa", 100, (self.width // 2, self.height // 2 + 100), MAGENTA)
+            self.timer.pause()
             self.wait_user()
 
     def handle_keyup_events(self, event):
@@ -335,12 +438,15 @@ class Main:
         self.magic_attack_group.empty()
         self.special_items.empty()
 
-
         self.init_coins()
         self.init_enemies("NIVEL 1")
+        self.init_map("NIVEL 1")
         self.init_player()
         self.init_sprites()
         self.init_status_bars()
+        self.init_especial_items()
+        self.init_traps()
+        self.init_timer()
 
     def run_game(self):
         
@@ -349,15 +455,17 @@ class Main:
         self.status_bar.draw_bar(self.screen)
         self.magic_bar.draw_bar(self.screen)
         self.special_items.draw(self.screen)
+        
+        #dibujo las plataformas
+        for platform in self.map_level.platforms_group:
+            self.screen.blit(platform.image, (platform.rect.x + self.map_level.position_x, platform.rect.y))
 
         for magic_attack in self.magic_attack_group:
             magic_attack.update()
             magic_attack.draw(self.screen)
 
-        
-        #dibujo las plataformas
-        for platform in self.map_level.platforms_group:
-            self.screen.blit(platform.image, (platform.rect.x + self.map_level.position_x, platform.rect.y))
+        # dibujo y actualizo las trampas
+        self.traps.draw(self.screen)
 
         # dibujo y actualizo al personaje principal y el enemigo_1
         self.claw.update_animation()
@@ -367,13 +475,41 @@ class Main:
         # actualizo constantemente la posicion de claw
         self.claw.player_pos = (self.claw.rect.x, self.claw.rect.y)
 
+
         self.all_coins.update()  # Actualizar la animación de las monedas
         self.all_coins.draw(self.screen)  # Dibujar las monedas en la pantalla
 
         # dibujo y actualizo las bullets
         self.bullet_group.update()
         self.bullet_group.draw(self.screen)
-        
+
+        # verificacion de colisiones con las trampas
+        collisions_traps = pygame.sprite.groupcollide(self.claws, self.traps, True, False)
+
+        # Verificación de colisiones con las trampas
+        for player, traps_hit in collisions_traps.items():
+            for trap in traps_hit:
+                self.claw.alive = False
+                self.claw.kill()
+                self.status_bar.percentage = 0
+                self.status_bar.update_percentage(self.status_bar.percentage)
+                # Llenar la pantalla con el color de fondo
+                self.screen.fill((0, 0, 0))  # Asume que el color de fondo es negro
+                deaht = pygame.transform.scale(pygame.image.load("src/claw_images/claw/fall/3.png"),(150, 150))
+                self.screen.blit(deaht, (self.claw.rect.x, self.claw.rect.y))
+
+                # Crear una instancia de TextRenderer y mostrar el texto
+                text_renderer = TextRenderer(self.screen)
+                text_renderer.show_text("Has muerto", 250, (self.width // 2, self.height // 2), RED)  # Asume que el color rojo es (255, 0, 0)
+                
+                pygame.display.flip()
+                self.sounds.play_game_over()
+                time.sleep(2)
+                restart_option = self.game_over.run(self.player_name)
+                if restart_option == "REINICIAR":
+                    self.restart()
+                print("El jugador chocó con una trampa")
+
         # verificacion de bullets y enemigos
         for enemy in self.enemy_group:
 
@@ -398,16 +534,16 @@ class Main:
 
             for bullet in collisions:
                 for enemy in collisions[bullet]:
-                    enemy.health -= 50  # Reduce la salud del enemigo
-                    if enemy.health <= 0:  # Si la salud del enemigo es 0 o menos, lo elimina
-                        # enemy.dying = True
-                        # enemy.update_action(3)  # 3 es muerte
+                    enemy.health_bar.percentage -= 25  # Reduce la salud del enemigo
+                    enemy.percentage_live -= 25  # Reduce la salud del enemigo
+                    if enemy.percentage_live <= 0:  # Si la salud del enemigo es 0 o menos, lo elimina
                         print("¡Enemigo eliminado!")
                         score[0] += 25
                         self.enemy_group.remove(enemy)
 
             enemy.update_animation()
             enemy.draw(self.screen)
+            enemy.health_bar.draw_bar(self.screen)
 
         for enemy in self.enemy_group:
             enemy.ai(self.claw, self.map_level.platforms_group, self.width, self.map_level)
@@ -422,7 +558,6 @@ class Main:
 
                     if self.status_bar.percentage == 0:
                         self.high_scores.update_high_scores(self.player_name, score[0])
-                        self.high_scores.save_high_score(self.player_name, score[0])
                         self.sounds.play_game_over()
                         restart_option = self.game_over.run(self.player_name)
 
@@ -432,8 +567,9 @@ class Main:
 
             for magic_attack in collisions:
                 for enemy in collisions[magic_attack]:
-                    enemy.health -= 200  # Reduce la salud del enemigo
-                    if enemy.health <= 0:  # Si la salud del enemigo es 0 o menos, lo elimina
+                    enemy.health_bar.percentage -= 200  # Reduce la salud del enemigo
+                    enemy.percentage_live -= 200  # Reduce la salud del enemigo
+                    if enemy.health_bar.percentaje <= 0:  # Si la salud del enemigo es 0 o menos, lo elimina
                         print("¡Enemigo eliminado!")
                         score[0] += 25
                         self.enemy_group.remove(enemy)
@@ -464,10 +600,10 @@ class Main:
         # Manejar las colisiones
         for player, special_items in collisions_special_items.items():
             for special_item in special_items:
-                if special_item.type == "life":
+                if special_item.type == "life" and self.status_bar.percentage < 100: 
                     self.status_bar.percentage += 10
                     print("¡El jugador recogió un elemento de vida!")
-                elif special_item.type == "magic":
+                elif special_item.type == "magic" and self.magic_bar.percentage < 100:
                     self.magic_bar.percentage += 25
                     print("¡El jugador recogió un elemento de magia!")
 
@@ -475,9 +611,11 @@ class Main:
 
         if game_over:
             self.high_scores.update_high_scores(self.player_name, score[0])
-            self.high_scores.save_high_score(self.player_name, score[0])
             self.sounds.play_game_over()
+            self.restart()
+            self.timer.reset()
             restart_option = self.game_over.run(self.player_name)
+            score[0] = 0
 
         if self.claw.alive:
             
@@ -507,14 +645,14 @@ class Main:
 
         while self.run_menu:
             menu_option = self.main_menu.run()
-
-            # if menu_option == "INICIAR JUEGO":
-            #     self.main_menu.menu_option = None
-            #     self.run = True
+            self.timer.pause()
+            if menu_option == "INICIAR JUEGO":
+                self.main_menu.menu_option = None
+                self.run = True
                 
-            #     while self.run:  
-            #         self.handle_events()
-            #         self.run_game()
+                while self.run:  
+                    self.handle_events()
+                    self.run_game()
 
             if menu_option == "VER PUNTUACIONES":
 
@@ -534,7 +672,7 @@ class Main:
                                 
                     self.screen.fill(NEGRO)
 
-                    self.high_scores.show_high_scores(self.screen, RED)
+                    self.high_scores.show_high_scores(self.screen, NEGRO)
                     # Dibuja un botón para volver al menú principal
                     button_start_rect = pygame.Rect(self.width // 2 - width_button // 2, self.height // 2 + height_button, width_button, height_button)
                     
@@ -575,22 +713,14 @@ class Main:
                         self.handle_events()
                         self.run_game()
                     
-
+            if menu_option == "CONFIGURACIÓN":
+                self.main_menu.menu_option = None
+                self.show_config_screen()
+                self.run_menu = True
 
             if menu_option == "SALIR":
                 self.exit_game()
                 self.timer.reset()
-
-    def wait_user(self):
-
-        while True:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.exit_game()
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        self.exit_game()
-                    return
 
     def exit_game(self):
         self.run_menu = False
@@ -602,4 +732,9 @@ if __name__ == "__main__":
     game.main() 
     game.run_main()
 
+
+# sqlite
+# final level
+# escalabilidad de niveles
+# exc|epciones
 

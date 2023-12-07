@@ -7,6 +7,7 @@ player_name = ""
 pos_x_special_item = 300
 pos_y_especial_item = 573
 scale_special_items = (32, 32)
+volumen = 0.5
 
 # booleanos para el juego
 
@@ -82,7 +83,9 @@ scale_enemy = .40
 pos_y_enemy1 = 400
 pos_y_enemy2 = 800
 damage_enemy_1 = 10
-
+width_bar_enemy_1 = 50
+height_bar_enemy_1 = 10
+percentage_live_enemy = 100
 
 # defino variables del enemy 2
 

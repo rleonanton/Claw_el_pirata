@@ -1,10 +1,15 @@
 import pygame, os, json
 
 class HighScores:
-    def __init__(self, file_path, width, height):
+    def __init__(self, file_path, width, height, background_image_path, path_image_top_1, path_image_top_2, path_image_top_3):
         self.file_path = file_path
         self.width = width
         self.height = height
+        self.background_image = pygame.transform.scale(pygame.image.load(background_image_path), (self.width, self.height))
+        self.medals = [pygame.transform.scale(pygame.image.load(path_image_top_1), (40, 40)),\
+                    pygame.transform.scale(pygame.image.load(path_image_top_2), (40, 40)),\
+                    pygame.transform.scale(pygame.image.load(path_image_top_3), (40, 40))]
+
 
     def save_high_score(self, name, score):
         with open(self.file_path, "a") as file:
@@ -41,15 +46,21 @@ class HighScores:
         self.screen.blit(label, text_rect.topleft)
 
     def show_high_scores(self, screen, color):
-        high_scores = []
+        # Dibuja el fondo
+        screen.blit(self.background_image, (0, 0))
 
+        high_scores = []
         if os.path.isfile(self.file_path):
             with open(self.file_path, "r") as file:
-                high_scores = [json.loads(line.strip()) for line in file]
+                high_scores = [json.loads(line.strip()) for line in file if line.strip()]
 
         font = pygame.font.Font(None, 70)
         y = 10  # Coordenada Y inicial para mostrar los puntajes
         for i, entry in enumerate(high_scores, start=1):
+            # Dibuja las medallas para los tres primeros lugares
+            if i <= 3:
+                screen.blit(self.medals[i-1], (650, 50 + y))
+
             text_surface = font.render(f"Puntaje {i}: {entry['name']}     {entry['score']}", True, color)
-            screen.blit(text_surface, (self.width // 2 - text_surface.get_width() + 240, 50 + y))
+            screen.blit(text_surface, (700, 50 + y))  # Ajusta la coordenada X para dejar espacio para la medalla
             y += text_surface.get_height() + 5

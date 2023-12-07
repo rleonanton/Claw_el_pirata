@@ -2,7 +2,8 @@ import pygame
 from config import VERDE
 
 class StatusBar:
-    def __init__(self, pos_x_bar, pos_y_bar, width_bar, height_bar, color_fill, border_color, percentage, text):
+    def __init__(self, pos_x_bar, pos_y_bar, width_bar, height_bar, color_fill, border_color, percentage, text, font_size):
+
         self.x = pos_x_bar
         self.y = pos_y_bar
         self.width = width_bar
@@ -10,7 +11,7 @@ class StatusBar:
         self.color = color_fill
         self.border_color = border_color
         self.percentage = percentage
-        self.font = pygame.font.Font(None, 38)  # Define la fuente del texto
+        self.font = pygame.font.Font(None, font_size)  # Define la fuente del texto
         self.text = text
 
     def update_percentage(self, percentage):

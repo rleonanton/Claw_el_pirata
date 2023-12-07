@@ -35,3 +35,6 @@ class Sounds:
 
     def play_magic_attack(self):
         self.magic_attack_sound.play()
+
+    def pause_main(self):
+        pygame.mixer.music.pause()
