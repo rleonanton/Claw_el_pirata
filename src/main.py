@@ -103,8 +103,6 @@ class Main:
                 self.enemy_group.add(enemy)
 
             elif level == "NIVEL 3":
-                self.final_boss = FinalBoss(pos_x_final_boss, pos_y_final_boss, self.width, self.height, "src/claw_images/Imagen2.png", self.screen)
-
                 enemy = Enemy(enemy_alive_2, flip_enemy_2, random.randint(600, self.width), pos_y, scale_enemy_2, speed_enemy_2, speed_enemy_2, "src/claw_images/enemigos/enemigo_2",\
                             moving_left_enemy_2, moving_right_enemy_2, gravity, shots_recived_2, qty_idle_images_enemy_2, qty_moving_images_enemy_2, qty_attack_images_enemy_2, qty_death_images_enemy_2,\
                             health_enemy_2, damage_enemy_2, animation_cooldown_enemy, width_bar_enemy_1, height_bar_enemy_1, percentage_live_enemy, VIOLETA, CIAN, "LIVE BAR", 10)
@@ -113,6 +111,9 @@ class Main:
             else:
                 raise ValueError(f"Nivel desconocido: {level}")
             
+    def init_final_boss(self):
+        self.final_boss = FinalBoss(pos_x_final_boss, pos_y_final_boss, self.width, self.height, "src/claw_images/Imagen2.png", self.screen)
+
     def init_map(self, level):
 
         if level == "NIVEL 1":
@@ -342,6 +343,7 @@ class Main:
         self.init_game_over()
         self.init_win()
         self.init_timer()
+        # self.init_final_boss()
         # self.init_sqlite()
 
     def handle_events(self):
@@ -540,6 +542,57 @@ class Main:
             self.final_boss.draw(self.screen)
             self.final_boss.bullet_group.draw(self.screen)
 
+            # Verificación de colisiones con el jefe final
+            collisions = pygame.sprite.groupcollide(self.final_boss.bullet_group, self.claws, True, False)
+            for bullet in collisions:
+                for claw in collisions[bullet]:
+                    self.status_bar.percentage -= 100
+                    self.status_bar.update_percentage(self.status_bar.percentage)
+                    if self.status_bar.percentage == 0:
+                        self.high_scores.update_high_scores(self.player_name, score[0])
+                        self.sounds.play_game_over()
+                        restart_option = self.game_over.run(self.player_name)
+
+                        if restart_option == "REINICIAR":
+                            self.restart()
+                            self.timer.reset()
+
+            collisions_magic_attacks = pygame.sprite.spritecollide(self.final_boss, self.magic_attack_group, True)
+            for magic_attack in collisions_magic_attacks:
+                self.final_boss.health -= 10  # Los ataques mágicos reducen la salud del jefe final en un 10%
+                self.final_boss.health_bar.update_percentage(self.final_boss.health)
+                if self.final_boss.health <= 0:
+                    score[0] += 1000
+                    self.high_scores.update_high_scores(self.player_name, score[0])
+                    self.sounds.play_win()
+                    restart_option = self.win.run(self.player_name)
+
+                    if restart_option == "REINICIAR":
+                        self.restart()
+                        self.timer.reset()
+                        score[0] = 0
+            
+
+            # Verificación de colisiones con el jefe final
+            collisions_bullets = pygame.sprite.spritecollide(self.final_boss, self.bullet_group, True)
+            for bullet in collisions_bullets:
+                self.final_boss.health -= 5  # Las balas reducen la salud del jefe final en un 5%
+                self.final_boss.health_bar.update_percentage(self.final_boss.health)
+                if self.final_boss.health <= 0:
+                    score[0] += 1000
+                    self.high_scores.update_high_scores(self.player_name, score[0])
+                    self.sounds.play_win()
+                    restart_option = self.win.run(self.player_name)
+
+                    if restart_option == "REINICIAR":
+                        self.restart()
+                        self.timer.reset()
+                        score[0] = 0
+                        
+        # dibujo y actualizo las bullets
+        self.bullet_group.update()
+        self.bullet_group.draw(self.screen)
+
         self.status_bar.draw_bar(self.screen)
         self.magic_bar.draw_bar(self.screen)
         self.special_items.draw(self.screen)
@@ -566,58 +619,6 @@ class Main:
         self.all_coins.update()  # Actualizar la animación de las monedas
         self.all_coins.draw(self.screen)  # Dibujar las monedas en la pantalla
 
-
-        #verifico la colision de claw con las balas del final boss
-        collisions = pygame.sprite.groupcollide(self.final_boss.bullet_group, self.claws, True, False)
-        for bullet in collisions:
-            for claw in collisions[bullet]:
-                self.status_bar.percentage -= 100
-                self.status_bar.update_percentage(self.status_bar.percentage)
-                if self.status_bar.percentage == 0:
-                    self.high_scores.update_high_scores(self.player_name, score[0])
-                    self.sounds.play_game_over()
-                    restart_option = self.game_over.run(self.player_name)
-
-                    if restart_option == "REINICIAR":
-                        self.restart()
-                        self.timer.reset()
-
-        
-        # dibujo y actualizo las bullets
-        self.bullet_group.update()
-        self.bullet_group.draw(self.screen)
-
-        # Verificación de colisiones con el jefe final
-        collisions_bullets = pygame.sprite.spritecollide(self.final_boss, self.bullet_group, True)
-        for bullet in collisions_bullets:
-            self.final_boss.health -= 5  # Las balas reducen la salud del jefe final en un 5%
-            self.final_boss.health_bar.update_percentage(self.final_boss.health)
-            if self.final_boss.health <= 0:
-                score[0] += 1000
-                self.high_scores.update_high_scores(self.player_name, score[0])
-                self.sounds.play_win()
-                restart_option = self.win.run(self.player_name)
-
-                if restart_option == "REINICIAR":
-                    self.restart()
-                    self.timer.reset()
-                    score[0] = 0
-
-        collisions_magic_attacks = pygame.sprite.spritecollide(self.final_boss, self.magic_attack_group, True)
-        for magic_attack in collisions_magic_attacks:
-            self.final_boss.health -= 10  # Los ataques mágicos reducen la salud del jefe final en un 10%
-            self.final_boss.health_bar.update_percentage(self.final_boss.health)
-            if self.final_boss.health <= 0:
-                score[0] += 1000
-                self.high_scores.update_high_scores(self.player_name, score[0])
-                self.sounds.play_win()
-                restart_option = self.win.run(self.player_name)
-
-                if restart_option == "REINICIAR":
-                    self.restart()
-                    self.timer.reset()
-                    score[0] = 0
-        
         # verificacion de colisiones con las trampas
         collisions_traps = pygame.sprite.groupcollide(self.claws, self.traps, True, False)
 
@@ -812,6 +813,8 @@ class Main:
                         self.timer.reset()
                         self.run_level_1 = False
                         self.run_level_2 = True
+                        self.claw.rect.x = 200
+                        self.claw.rect.y = 800
                         while self.run_level_2:
                             self.handle_events()
                             self.run_game()
@@ -819,12 +822,15 @@ class Main:
                                 self.map_level = "NIVEL 3"
                                 self.init_map(self.map_level)
                                 self.init_enemies("NIVEL 3")
+                                self.init_final_boss()
                                 self.init_coins()
                                 self.init_especial_items()
                                 self.init_traps()
                                 self.timer.reset()
                                 self.run_level_2 = False
                                 self.run_level_3 = True
+                                self.claw.rect.x = 200
+                                self.claw.rect.y = 800
                                 while self.run_level_3:
                                     self.handle_events()
                                     self.run_game()
@@ -929,6 +935,5 @@ if __name__ == "__main__":
     game.run_main()
 
 
-# modularizar run_game
-
-
+# modularizar run_game()
+# modularizar run_main()
